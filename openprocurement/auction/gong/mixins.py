@@ -3,13 +3,20 @@ import json
 from copy import deepcopy
 from couchdb.http import HTTPError, RETRYABLE_ERRORS
 
+from openprocurement.auction.utils import get_tender_data
+
 from openprocurement.auction.gong.utils import (
     prepare_auction_document,
     post_results_data,
-    announce_results_data
+    announce_results_data,
+    filter_bids,
+    set_bids_information
 )
 from openprocurement.auction.gong.constants import (
    BIDS_KEYS_FOR_COPY
+)
+from openprocurement.auction.worker_core.mixins import (
+    RequestIDServiceMixin, AuditServiceMixin
 )
 from openprocurement.auction.gong.journal import (
     AUCTION_WORKER_DB_GET_DOC,
@@ -29,18 +36,16 @@ from openprocurement.auction.gong.journal import (
 LOGGER = logging.getLogger("Auction Worker")
 
 
-class DBServiceMixin(object):
+class DBServiceMixin(RequestIDServiceMixin):
     """ Mixin class to work with couchdb"""
-
-    def get_auction_info(self, prepare=False):
-        pass
-
-    def prepare_public_document(self):
-        public_document = deepcopy(dict(self.auction_document))
-        return public_document
+    db_request_retries = 10
+    db = None
+    auction_document = None
+    auction_doc_id = ''
 
     def get_auction_document(self, force=False):
-        retries = self.retries
+        self.generate_request_id()
+        retries = self.db_request_retries
         while retries:
             try:
                 public_document = self.db.get(self.auction_doc_id)
@@ -71,9 +76,10 @@ class DBServiceMixin(object):
                                     extra={'MESSAGE_ID': AUCTION_WORKER_DB_GET_DOC_UNHANDLED_ERROR})
             retries -= 1
 
-    def save_auction_document(self):
-        public_document = self.prepare_public_document()
-        retries = 10
+    def save_auction_document(self, auction_document):
+        self.generate_request_id()
+        public_document = auction_document
+        retries = self.db_request_retries
         while retries:
             try:
                 response = self.db.save(public_document)
@@ -100,25 +106,10 @@ class DBServiceMixin(object):
             public_document["_rev"] = saved_auction_document["_rev"]
             retries -= 1
 
-    def prepare_auction_document(self):
-        self.generate_request_id()
-        public_document = self.get_auction_document()
-
-        self.auction_document = {}
-        if public_document:
-            self.auction_document = {"_rev": public_document["_rev"]}
-        if self.debug:
-            self.auction_document['mode'] = 'test'
-            self.auction_document['test_auction_data'] = deepcopy(self._auction_data)
-
-        self.get_auction_info(prepare=True)
-        self.auction_document = prepare_auction_document(self)
-
-        self.save_auction_document()
-
 
 class BiddersServiceMixin(object):
     """Mixin class to work with bids data"""
+    _bids_data = []
 
     def add_bid(self, round_id, bid):
         if round_id not in self._bids_data:
@@ -137,10 +128,18 @@ class BiddersServiceMixin(object):
         pass
 
 
-class PostAuctionServiceMixin(object):
+class AuctionAPIServiceMixin(
+    RequestIDServiceMixin,
+    AuditServiceMixin,
+):
+    auction_doc_id = ''
+    with_document_service = False
+    tender_url = ''
+    api_token = ''
+    session = None
 
-    def put_auction_data(self):
-        if self.worker_defaults.get('with_document_service', False):
+    def put_auction_data(self, auction_document):
+        if self.with_document_service:
             doc_id = self.upload_audit_file_with_document_service()
         else:
             doc_id = self.upload_audit_file_without_document_service()
@@ -148,11 +147,12 @@ class PostAuctionServiceMixin(object):
         results = post_results_data(self)
 
         if results:
-            bids_information = announce_results_data(self, results)
+            bids_information = filter_bids(results)
+            set_bids_information(self, auction_document, bids_information)
 
             if doc_id and bids_information:
                 self.approve_audit_info_on_announcement(approved=bids_information)
-                if self.worker_defaults.get('with_document_service', False):
+                if self.with_document_service:
                     doc_id = self.upload_audit_file_with_document_service(doc_id)
                 else:
                     doc_id = self.upload_audit_file_without_document_service(doc_id)
@@ -165,11 +165,16 @@ class PostAuctionServiceMixin(object):
                        "MESSAGE_ID": AUCTION_WORKER_API_AUCTION_RESULT_NOT_APPROVED}
             )
 
-    def post_announce(self):
+    def get_auction_data(self):
         self.generate_request_id()
-        self.get_auction_document()
-        announce_results_data(self, None)
-        self.save_auction_document()
+        results = get_tender_data(
+            self.tender_url,
+            user=self.api_token,
+            request_id=self.request_id,
+            session=self.session
+        )
+
+        return results
 
 
 class StagesServiceMixin(object):
