@@ -18,7 +18,7 @@ EXTRAS_REQUIRE = {
 }
 ENTRY_POINTS = {
     'console_scripts': [
-        'auction_worker = openprocurement.auction.gong.cli:main',
+        'auction_gong = openprocurement.auction.gong.cli:main',
     ],
     'openprocurement.auction.auctions': [
         'dgfOtherAssets = openprocurement.auction.gong.includeme:kadastralProcedure',
