@@ -216,7 +216,7 @@ class Auction(DBServiceMixin,
         LOGGER.info(self.audit)
 
         self.auction_document['endDate'] = datetime.now(tzlocal()).isoformat()
-        if self.put_auction_data(self.auction_document):
+        if self.put_auction_data(self._auction_data, self.auction_document):
             self.save_auction_document()
 
         self._end_auction_event.set()
