@@ -4,16 +4,20 @@ from copy import deepcopy
 from couchdb.http import HTTPError, RETRYABLE_ERRORS
 
 from openprocurement.auction.utils import get_tender_data
+from openprocurement.auction.worker_core.utils import prepare_service_stage
 
 from openprocurement.auction.gong.utils import (
-    prepare_auction_document,
     post_results_data,
-    announce_results_data,
-    filter_bids,
-    set_bids_information
+    get_result_info,
+    set_result_info
 )
 from openprocurement.auction.gong.constants import (
-   BIDS_KEYS_FOR_COPY
+   BIDS_KEYS_FOR_COPY,
+   ENGLISH,
+   END,
+   AUCTION_DEADLINE,
+   ENGLISH_DURATION,
+   PAUSE_DURATION,
 )
 from openprocurement.auction.worker_core.mixins import (
     RequestIDServiceMixin, AuditServiceMixin
@@ -147,8 +151,8 @@ class AuctionAPIServiceMixin(
         results = post_results_data(self)
 
         if results:
-            bids_information = filter_bids(results)
-            set_bids_information(self, auction_document, bids_information)
+            bids_information = get_result_info(results)
+            set_result_info(auction_document, bids_information)
 
             if doc_id and bids_information:
                 self.approve_audit_info_on_announcement(approved=bids_information)
@@ -179,8 +183,36 @@ class AuctionAPIServiceMixin(
 
 class StagesServiceMixin(object):
 
-    def prepare_auction_stages(self):
-        pass
+    def prepare_auction_stages(self, stage_start, deadline, auction_data, fast_forward=False):
+        stages = [
+            prepare_service_stage(start=stage_start.isoformat())
+        ]
+
+        stage_start += PAUSE_DURATION
+        stage = {
+            'start': stage_start.isoformat(),
+            'type': ENGLISH,
+            'amount': auction_data['value']['amount'] + auction_data['minimalStep']['amount'],
+            'time': ''
+        }
+        stages.append(stage)
+
+        stage_start += ENGLISH_DURATION
+        stage = {
+            'start': stage_start.isoformat(),
+            'type': END,
+            'time': ''
+        }
+        stages.append(stage)
+
+        stage_start = deadline
+        stage = {
+            'start': stage_start.isoformat(),
+            'type': AUCTION_DEADLINE,
+            'time': ''
+        }
+        stages.append(stage)
+        return stages
 
     def next_stage(self, switch_to_round=None):
         pass
