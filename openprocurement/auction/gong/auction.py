@@ -1,6 +1,7 @@
 import logging
 import sys
 
+from yaml import safe_dump as yaml_dump
 from copy import deepcopy
 
 from urlparse import urljoin
@@ -20,32 +21,41 @@ from openprocurement.auction.gong.journal import (
     AUCTION_WORKER_SERVICE_AUCTION_STATUS_CANCELED,
     AUCTION_WORKER_SERVICE_AUCTION_CANCELED,
     AUCTION_WORKER_SERVICE_END_AUCTION,
-    AUCTION_WORKER_SERVICE_START_AUCTION,
     AUCTION_WORKER_SERVICE_STOP_AUCTION_WORKER,
-    AUCTION_WORKER_SERVICE_PREPARE_SERVER,
     AUCTION_WORKER_SERVICE_END_FIRST_PAUSE,
     AUCTION_WORKER_API_AUCTION_CANCEL,
     AUCTION_WORKER_API_AUCTION_NOT_EXIST
 )
 from openprocurement.auction.executor import AuctionsExecutor
-from openprocurement.auction.utils import get_tender_data
+from openprocurement.auction.utils import (
+    get_tender_data,
+    delete_mapping
+)
 from openprocurement.auction.worker_core.constants import TIMEZONE
 from openprocurement.auction.gong.mixins import\
     DBServiceMixin,\
-    BiddersServiceMixin, PostAuctionServiceMixin,\
+    BiddersServiceMixin, AuctionAPIServiceMixin,\
     StagesServiceMixin
 from openprocurement.auction.worker_core.mixins import (
     RequestIDServiceMixin,
     AuditServiceMixin,
     DateTimeServiceMixin
 )
-from openprocurement.auctions.gong.utils import (
-    filter_bids,
-    set_bids_information
+from openprocurement.auction.gong.utils import (
+    get_result_info,
+    set_result_info,
+    update_auction_document,
+    prepare_audit,
+    lock_bids
 )
+from openprocurement.auction.gong.server import run_server
 from openprocurement.auction.gong.constants import (
     MULTILINGUAL_FIELDS,
-    ADDITIONAL_LANGUAGES
+    ADDITIONAL_LANGUAGES,
+    PRESTARTED,
+    END,
+    AUCTION_DEADLINE,
+    DEADLINE_TIME
 )
 
 
@@ -62,7 +72,7 @@ class Auction(DBServiceMixin,
               BiddersServiceMixin,
               DateTimeServiceMixin,
               StagesServiceMixin,
-              PostAuctionServiceMixin):
+              AuctionAPIServiceMixin):
     """Auction Worker Class"""
 
     def __init__(self, tender_id,
@@ -100,15 +110,62 @@ class Auction(DBServiceMixin,
         self.retries = 10
         self.bidders_count = 0
         self.bidders_data = []
-        self.bidders_features = {}
-        self.bidders_coeficient = {}
-        self.features = None
         self.mapping = {}
-        self.rounds_stages = []
         self.use_api = False
+        self.deadline_time = datetime(
+            self.startDate.year,
+            self.startDate.month,
+            self.startDate.day,
+            DEADLINE_TIME
+        )
 
     def schedule_auction(self):
-        pass
+        with update_auction_document(self):
+            if self.debug:
+                LOGGER.info("Get _auction_data from auction_document")
+                self._auction_data = self.auction_document.get(
+                    'test_auction_data', {}
+                )
+            self.synchronize_auction_info()
+            self.audit = prepare_audit()
+
+        SCHEDULER.add_job(
+            self.start_auction,
+            'date',
+            run_date=self.convert_datetime(
+                self.auction_document['stages'][0]['start']
+            ),
+            name="Start of Auction",
+            id="auction:start"
+        )
+
+        for index, stage in enumerate(self.auction_document['stages'][1:], 1):
+            if stage['type'] == END:
+                name = 'End of Auction'
+                job_id = 'auction:{}'.format(END)
+                func = self.end_auction
+            elif stage['type'] == AUCTION_DEADLINE:
+                name = "Auction Deadline"
+                func = self.end_auction
+                job_id = "auction:{}".format(AUCTION_DEADLINE)
+            else:
+                continue
+
+            SCHEDULER.add_job(
+                func,
+                'date',
+                args=(stage,),
+                run_date=self.convert_datetime(
+                    self.auction_document['stages'][index]['start']
+                ),
+                name=name,
+                id=job_id
+            )
+
+        self.server = run_server(
+            self,
+            LOGGER
+        )
 
     def wait_to_end(self):
         self._end_auction_event.wait()
@@ -116,11 +173,53 @@ class Auction(DBServiceMixin,
                     extra={"JOURNAL_REQUEST_ID": self.request_id,
                            "MESSAGE_ID": AUCTION_WORKER_SERVICE_STOP_AUCTION_WORKER})
 
-    def start_auction(self, switch_to_round=None):
-        pass
+    def start_auction(self):
+        self.generate_request_id()
+        self.audit['timeline']['auction_start']['time'] = datetime.now(tzlocal()).isoformat()
+        LOGGER.info(
+            '---------------- Start auction  ----------------',
+            extra={"JOURNAL_REQUEST_ID": self.request_id,
+                   "MESSAGE_ID": AUCTION_WORKER_SERVICE_END_FIRST_PAUSE}
+        )
+        self.get_auction_info()
+        with lock_bids(self), update_auction_document(self):
+            self.auction_document["current_stage"] = 0
+            self.auction_document['current_phase'] = PRESTARTED
+            LOGGER.info("Switched current stage to {}".format(
+                self.auction_document['current_stage']
+            ))
 
-    def end_auction(self):
-        pass
+    def end_auction(self, stage):
+        LOGGER.info(
+            '---------------- End auction ----------------',
+            extra={"JOURNAL_REQUEST_ID": self.request_id,
+                   "MESSAGE_ID": AUCTION_WORKER_SERVICE_END_AUCTION}
+        )
+        LOGGER.debug(
+            "Stop server", extra={"JOURNAL_REQUEST_ID": self.request_id}
+        )
+        if self.server:
+            self.server.stop()
+        delete_mapping(self.worker_defaults,
+                       self.auction_doc_id)
+        LOGGER.debug(
+            "Clear mapping", extra={"JOURNAL_REQUEST_ID": self.request_id}
+        )
+
+        self.auction_document["current_stage"] = len(self.auction_document["stages"]) - 1
+        self.auction_document['current_phase'] = stage['type']
+        # TODO: work with audit
+        LOGGER.info(
+            'Audit data: \n {}'.format(yaml_dump(self.audit)),
+            extra={"JOURNAL_REQUEST_ID": self.request_id}
+        )
+        LOGGER.info(self.audit)
+
+        self.auction_document['endDate'] = datetime.now(tzlocal()).isoformat()
+        if self.put_auction_data(self.auction_document):
+            self.save_auction_document()
+
+        self._end_auction_event.set()
 
     def cancel_auction(self):
         self.generate_request_id()
@@ -158,8 +257,8 @@ class Auction(DBServiceMixin,
 
         auction = self.get_auction_data()
 
-        bids_information = filter_bids(auction)
-        set_bids_information(self, self.auction_document, bids_information)
+        bids_information = get_result_info(auction)
+        set_result_info(self.auction_document, bids_information)
 
         self.generate_request_id()
         self.save_auction_document()
@@ -182,9 +281,18 @@ class Auction(DBServiceMixin,
         self._prepare_auction_document_data()
 
         if self.worker_defaults.get('sandbox_mode', False):
-            self._prepare_auction_document_stages(fast_forward=True)
+            self.auction_document['stages'] = self.prepare_auction_stages(
+                self.startDate,
+                self.deadline_time,
+                deepcopy(self.auction_document),
+                fast_forward=True
+            )
         else:
-            self._prepare_auction_document_stages()
+            self.auction_document['stages'] = self.prepare_auction_stages(
+                self.startDate,
+                self.deadline_time,
+                deepcopy(self.auction_document)
+            )
 
         self.save_auction_document()
 
@@ -218,12 +326,6 @@ class Auction(DBServiceMixin,
             self.auction_document[key] = self._auction_data["data"].get(
                 key, ""
             )
-
-    def _prepare_auction_document_stages(self, fast_forward=False):
-        if fast_forward:
-            pass
-        else:
-            pass
 
     def synchronize_auction_info(self, prepare=False):
         if self.use_api:
