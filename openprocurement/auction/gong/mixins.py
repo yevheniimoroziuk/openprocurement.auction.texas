@@ -3,11 +3,14 @@ import json
 from copy import deepcopy
 from couchdb.http import HTTPError, RETRYABLE_ERRORS
 
-from openprocurement.auction.utils import get_tender_data
+from openprocurement.auction.utils import (
+    get_tender_data,
+    get_latest_bid_for_bidder,
+    make_request
+)
 from openprocurement.auction.worker_core.utils import prepare_service_stage
 
 from openprocurement.auction.gong.utils import (
-    post_results_data,
     get_result_info,
     set_result_info
 )
@@ -29,6 +32,7 @@ from openprocurement.auction.gong.journal import (
     AUCTION_WORKER_DB_SAVE_DOC,
     AUCTION_WORKER_DB_SAVE_DOC_ERROR,
     AUCTION_WORKER_DB_SAVE_DOC_UNHANDLED_ERROR,
+    AUCTION_WORKER_API_APPROVED_DATA,
     AUCTION_WORKER_BIDS_LATEST_BID_CANCELLATION,
     AUCTION_WORKER_API_AUCTION_RESULT_NOT_APPROVED,
     AUCTION_WORKER_SERVICE_END_BID_STAGE,
@@ -110,6 +114,10 @@ class DBServiceMixin(RequestIDServiceMixin):
             public_document["_rev"] = saved_auction_document["_rev"]
             retries -= 1
 
+    def prepare_public_document(self):
+        public_document = deepcopy(dict(self.auction_document))
+        return public_document
+
 
 class BiddersServiceMixin(object):
     """Mixin class to work with bids data"""
@@ -142,13 +150,19 @@ class AuctionAPIServiceMixin(
     api_token = ''
     session = None
 
-    def put_auction_data(self, auction_document):
+    def put_auction_data(self, auction_data, auction_document):
+        """
+        :param auction_data: data from api
+        :param auction_document: data from auction module couchdb
+        :return: True if auctions result was successfully patched or None if smth wrong
+        """
+
         if self.with_document_service:
             doc_id = self.upload_audit_file_with_document_service()
         else:
             doc_id = self.upload_audit_file_without_document_service()
 
-        results = post_results_data(self)
+        results = self.post_results_data(auction_data)
 
         if results:
             bids_information = get_result_info(results)
@@ -157,9 +171,9 @@ class AuctionAPIServiceMixin(
             if doc_id and bids_information:
                 self.approve_audit_info_on_announcement(approved=bids_information)
                 if self.with_document_service:
-                    doc_id = self.upload_audit_file_with_document_service(doc_id)
+                    self.upload_audit_file_with_document_service(doc_id)
                 else:
-                    doc_id = self.upload_audit_file_without_document_service(doc_id)
+                    self.upload_audit_file_without_document_service(doc_id)
 
                 return True
         else:
@@ -168,6 +182,34 @@ class AuctionAPIServiceMixin(
                 extra={"JOURNAL_REQUEST_ID": self.request_id,
                        "MESSAGE_ID": AUCTION_WORKER_API_AUCTION_RESULT_NOT_APPROVED}
             )
+
+    def post_results_data(self, auction_data, auction_document):
+        """
+        :param auction_data: data from api
+        :param auction_document: data from auction module couchdb
+        :return: response from api where data is posted
+        """
+        result_bids = auction_document["results"]
+        result_data = auction_data["data"]["bids"]
+
+        for index, bid_info in enumerate(auction_data["data"]["bids"]):
+            if bid_info.get('status', 'active') == 'active':
+                auction_bid_info = get_latest_bid_for_bidder(result_bids, bid_info["id"])
+                result_data[index]["value"]["amount"] = auction_bid_info["amount"]
+                result_data[index]["date"] = auction_bid_info["time"]
+
+        data = {'data': {'bids': result_data}}
+        LOGGER.info(
+            "Approved data: {}".format(data),
+            extra={"JOURNAL_REQUEST_ID": self.request_id,
+                   "MESSAGE_ID": AUCTION_WORKER_API_APPROVED_DATA}
+        )
+        return make_request(
+            self.tender_url + '/auction', data=data,
+            user=self.api_token,
+            method='post',
+            request_id=self.request_id, session=self.session
+        )
 
     def get_auction_data(self):
         self.generate_request_id()
