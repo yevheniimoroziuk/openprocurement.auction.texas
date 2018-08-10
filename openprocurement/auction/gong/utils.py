@@ -10,15 +10,6 @@ def prepare_bid_stage(exist_stage_params, params={},  current_auction_value=0):
     return stage
 
 
-def post_results_data(auction):
-    pass
-
-
-def prepare_public_document(self):
-    public_document = deepcopy(dict(self.auction_document))
-    return public_document
-
-
 def get_result_info(results):
 
     bids_information = dict([
