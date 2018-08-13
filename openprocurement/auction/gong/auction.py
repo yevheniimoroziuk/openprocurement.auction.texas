@@ -54,7 +54,7 @@ from openprocurement.auction.gong.constants import (
     PRESTARTED,
     END,
     AUCTION_DEADLINE,
-    DEADLINE_TIME
+    DEADLINE_HOUR
 )
 
 
@@ -380,7 +380,7 @@ class Auction(DBServiceMixin,
             self.startDate.year,
             self.startDate.month,
             self.startDate.day,
-            DEADLINE_TIME
+            DEADLINE_HOUR
         )
 
     def _set_bidders_data(self):

@@ -17,7 +17,7 @@ from openprocurement.auction.gong.utils import (
 )
 from openprocurement.auction.gong.constants import (
    BIDS_KEYS_FOR_COPY,
-   ENGLISH,
+   MAIN_ROUND,
    END,
    AUCTION_DEADLINE,
    ROUND_DURATION,
@@ -233,7 +233,7 @@ class StagesServiceMixin(object):
         stage_start += timedelta(seconds=PAUSE_DURATION)
         stage = {
             'start': stage_start.isoformat(),
-            'type': ENGLISH,
+            'type': MAIN_ROUND,
             'amount': auction_data['value']['amount'] + auction_data['minimalStep']['amount'],
             'time': ''
         }

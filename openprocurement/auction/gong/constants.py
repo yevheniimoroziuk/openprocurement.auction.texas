@@ -6,8 +6,8 @@ MULTILINGUAL_FIELDS = ["title", "description"]
 ADDITIONAL_LANGUAGES = ["ru", "en"]
 
 PRESTARTED = 'pre-started'
-ENGLISH = 'english'
+MAIN_ROUND = 'english'
 AUCTION_DEADLINE = 'auction-deadline'
 END = 'announcement'
 
-DEADLINE_TIME = 17
+DEADLINE_HOUR = 17
