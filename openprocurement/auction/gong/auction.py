@@ -38,7 +38,6 @@ from openprocurement.auction.gong.mixins import\
     StagesServiceMixin
 from openprocurement.auction.worker_core.mixins import (
     RequestIDServiceMixin,
-    AuditServiceMixin,
     DateTimeServiceMixin
 )
 from openprocurement.auction.gong.utils import (
@@ -68,7 +67,6 @@ SCHEDULER.timezone = TIMEZONE
 
 class Auction(DBServiceMixin,
               RequestIDServiceMixin,
-              AuditServiceMixin,
               BiddersServiceMixin,
               DateTimeServiceMixin,
               StagesServiceMixin,
@@ -112,12 +110,6 @@ class Auction(DBServiceMixin,
         self.bidders_data = []
         self.mapping = {}
         self.use_api = False
-        self.deadline_time = datetime(
-            self.startDate.year,
-            self.startDate.month,
-            self.startDate.day,
-            DEADLINE_TIME
-        )
 
     def schedule_auction(self):
         with update_auction_document(self):
@@ -312,6 +304,7 @@ class Auction(DBServiceMixin,
             ),
             "items": self._auction_data["data"].get("items", []),
             "value": self._auction_data["data"].get("value", {}),
+            "minimalStep": self._auction_data["data"].get("minimalStep", {}),
             "initial_value": self._auction_data["data"].get(
                 "value", {}
             ).get('amount'),
@@ -382,6 +375,12 @@ class Auction(DBServiceMixin,
     def _set_start_date(self):
         self.startDate = self.convert_datetime(
             self._auction_data['data'].get('auctionPeriod', {}).get('startDate', '')
+        )
+        self.deadline_time = datetime(
+            self.startDate.year,
+            self.startDate.month,
+            self.startDate.day,
+            DEADLINE_TIME
         )
 
     def _set_bidders_data(self):

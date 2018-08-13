@@ -182,6 +182,5 @@ def pytest_configure(config):
 def pytest_runtest_setup(item):
     worker_marker = item.get_marker("worker")
     if worker_marker is not None:
-        # import pdb; pdb.set_trace()
         if not item.config.getoption("worker", False):
             pytest.skip("test requires worker option (--worker)")

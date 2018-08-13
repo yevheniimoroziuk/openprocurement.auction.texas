@@ -1,5 +1,6 @@
 import logging
 import json
+from datetime import timedelta
 from copy import deepcopy
 from couchdb.http import HTTPError, RETRYABLE_ERRORS
 
@@ -19,7 +20,7 @@ from openprocurement.auction.gong.constants import (
    ENGLISH,
    END,
    AUCTION_DEADLINE,
-   ENGLISH_DURATION,
+   ROUND_DURATION,
    PAUSE_DURATION,
 )
 from openprocurement.auction.worker_core.mixins import (
@@ -44,7 +45,7 @@ from openprocurement.auction.gong.journal import (
 LOGGER = logging.getLogger("Auction Worker")
 
 
-class DBServiceMixin(RequestIDServiceMixin):
+class DBServiceMixin(object):
     """ Mixin class to work with couchdb"""
     db_request_retries = 10
     db = None
@@ -84,9 +85,9 @@ class DBServiceMixin(RequestIDServiceMixin):
                                     extra={'MESSAGE_ID': AUCTION_WORKER_DB_GET_DOC_UNHANDLED_ERROR})
             retries -= 1
 
-    def save_auction_document(self, auction_document):
+    def save_auction_document(self):
         self.generate_request_id()
-        public_document = auction_document
+        public_document = self.prepare_public_document()
         retries = self.db_request_retries
         while retries:
             try:
@@ -141,8 +142,7 @@ class BiddersServiceMixin(object):
 
 
 class AuctionAPIServiceMixin(
-    RequestIDServiceMixin,
-    AuditServiceMixin,
+    AuditServiceMixin
 ):
     auction_doc_id = ''
     with_document_service = False
@@ -189,16 +189,16 @@ class AuctionAPIServiceMixin(
         :param auction_document: data from auction module couchdb
         :return: response from api where data is posted
         """
-        result_bids = auction_document["results"]
-        result_data = auction_data["data"]["bids"]
+        result_bids = deepcopy(auction_document["results"])
+        posted_result_data = deepcopy(auction_data["data"]["bids"])
 
         for index, bid_info in enumerate(auction_data["data"]["bids"]):
             if bid_info.get('status', 'active') == 'active':
                 auction_bid_info = get_latest_bid_for_bidder(result_bids, bid_info["id"])
-                result_data[index]["value"]["amount"] = auction_bid_info["amount"]
-                result_data[index]["date"] = auction_bid_info["time"]
+                posted_result_data[index]["value"]["amount"] = auction_bid_info["amount"]
+                posted_result_data[index]["date"] = auction_bid_info["time"]
 
-        data = {'data': {'bids': result_data}}
+        data = {'data': {'bids': posted_result_data}}
         LOGGER.info(
             "Approved data: {}".format(data),
             extra={"JOURNAL_REQUEST_ID": self.request_id,
@@ -230,7 +230,7 @@ class StagesServiceMixin(object):
             prepare_service_stage(start=stage_start.isoformat())
         ]
 
-        stage_start += PAUSE_DURATION
+        stage_start += timedelta(seconds=PAUSE_DURATION)
         stage = {
             'start': stage_start.isoformat(),
             'type': ENGLISH,
@@ -239,7 +239,7 @@ class StagesServiceMixin(object):
         }
         stages.append(stage)
 
-        stage_start += ENGLISH_DURATION
+        stage_start += timedelta(seconds=ROUND_DURATION)
         stage = {
             'start': stage_start.isoformat(),
             'type': END,
