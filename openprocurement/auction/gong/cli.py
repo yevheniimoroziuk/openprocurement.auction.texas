@@ -13,6 +13,7 @@ from zope.component.globalregistry import getGlobalSiteManager
 from openprocurement.auction.worker_core import constants as C
 
 from openprocurement.auction.gong.auction import Auction, SCHEDULER
+from openprocurement.auction.gong.context import prepare_context, IContext
 from openprocurement.auction.gong.database import prepare_database, IDatabase
 from openprocurement.auction.gong.datasource import prepare_datasource, IDataSource
 
@@ -30,6 +31,12 @@ def register_utilities(worker_config, auction_id):
     database_config = worker_config.get('database', {})
     database = prepare_database(database_config)
     gsm.registerUtility(database, IDatabase)
+
+    # Register context
+    context_config = worker_config.get('context', {})
+    context = prepare_context(context_config)
+    context['auction_doc_id'] = auction_id
+    gsm.registerUtility(context, IContext)
 
 
 def main():

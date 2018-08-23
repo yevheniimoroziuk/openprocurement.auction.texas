@@ -4,7 +4,6 @@ from copy import deepcopy
 from datetime import datetime, timedelta
 
 from zope.component.globalregistry import getGlobalSiteManager
-from apscheduler.schedulers.gevent import GeventScheduler
 from couchdb import Database, Session
 from gevent.event import Event
 from gevent.lock import BoundedSemaphore
@@ -31,6 +30,7 @@ from openprocurement.auction.gong.mixins import\
     DBServiceMixin,\
     BiddersServiceMixin,\
     StagesServiceMixin
+from openprocurement.auction.gong.context import IContext
 from openprocurement.auction.gong.datasource import IDataSource
 from openprocurement.auction.gong.database import IDatabase
 
@@ -81,9 +81,7 @@ class Auction(DBServiceMixin,
 
         self.datasource = gsm.queryUtility(IDataSource)
         self.database = gsm.queryUtility(IDatabase)
-        self.context = {
-            'auction_doc_id': tender_id,
-        }
+        self.context = gsm.queryUtility(IContext)
 
     def add_ending_main_round_job(self, start):
         # Add job that should end auction
