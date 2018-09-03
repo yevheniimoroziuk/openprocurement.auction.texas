@@ -4,7 +4,7 @@ from copy import deepcopy
 
 from couchdb.http import HTTPError
 
-from openprocurement.auction.gong.database import CouchDB
+from openprocurement.auction.texas.database import CouchDB
 
 
 class TestCouchDBDatabase(unittest.TestCase):
@@ -21,8 +21,8 @@ class TestInit(TestCouchDBDatabase):
     def setUp(self):
         super(TestInit, self).setUp()
 
-        self.patch_couchdb_database = mock.patch('openprocurement.auction.gong.database.Database')
-        self.patch_request_session = mock.patch('openprocurement.auction.gong.database.Session')
+        self.patch_couchdb_database = mock.patch('openprocurement.auction.texas.database.Database')
+        self.patch_request_session = mock.patch('openprocurement.auction.texas.database.Session')
 
         self.couchdb_database = mock.MagicMock()
         self.mock_couchdb_database = self.patch_couchdb_database.start()
@@ -53,8 +53,8 @@ class TestGetDocument(TestCouchDBDatabase):
     def setUp(self):
         super(TestGetDocument, self).setUp()
 
-        self.patch_couchdb_database = mock.patch('openprocurement.auction.gong.database.Database')
-        self.patch_request_session = mock.patch('openprocurement.auction.gong.database.Session')
+        self.patch_couchdb_database = mock.patch('openprocurement.auction.texas.database.Database')
+        self.patch_request_session = mock.patch('openprocurement.auction.texas.database.Session')
 
         self.couchdb_database = mock.MagicMock()
         self.mock_couchdb_database = self.patch_couchdb_database.start()
@@ -129,8 +129,8 @@ class TestUpdateRevision(TestCouchDBDatabase):
     def setUp(self):
         super(TestUpdateRevision, self).setUp()
 
-        self.patch_couchdb_database = mock.patch('openprocurement.auction.gong.database.Database')
-        self.patch_request_session = mock.patch('openprocurement.auction.gong.database.Session')
+        self.patch_couchdb_database = mock.patch('openprocurement.auction.texas.database.Database')
+        self.patch_request_session = mock.patch('openprocurement.auction.texas.database.Session')
 
         self.couchdb_database = mock.MagicMock()
         self.mock_couchdb_database = self.patch_couchdb_database.start()
@@ -166,8 +166,8 @@ class TestSaveDocument(TestCouchDBDatabase):
     def setUp(self):
         super(TestSaveDocument, self).setUp()
 
-        self.patch_couchdb_database = mock.patch('openprocurement.auction.gong.database.Database')
-        self.patch_request_session = mock.patch('openprocurement.auction.gong.database.Session')
+        self.patch_couchdb_database = mock.patch('openprocurement.auction.texas.database.Database')
+        self.patch_request_session = mock.patch('openprocurement.auction.texas.database.Session')
 
         self.couchdb_database = mock.MagicMock()
         self.mock_couchdb_database = self.patch_couchdb_database.start()

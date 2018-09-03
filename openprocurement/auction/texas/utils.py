@@ -8,7 +8,7 @@ from datetime import datetime, time, timedelta
 from openprocurement.auction.worker_core.constants import TIMEZONE
 from openprocurement.auction.worker_core.utils import prepare_service_stage
 
-from openprocurement.auction.gong.constants import (
+from openprocurement.auction.texas.constants import (
     PAUSE_DURATION, DEADLINE_HOUR, END, MAIN_ROUND
 )
 

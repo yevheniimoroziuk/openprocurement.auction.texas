@@ -17,23 +17,23 @@ from openprocurement.auction.utils import (
     generate_request_id,
     delete_mapping
 )
-from openprocurement.auction.gong.constants import (
+from openprocurement.auction.texas.constants import (
     END
 )
-from openprocurement.auction.gong.journal import (
+from openprocurement.auction.texas.journal import (
     AUCTION_WORKER_SERVICE_START_NEXT_STAGE,
     AUCTION_WORKER_SERVICE_END_AUCTION
 )
-from openprocurement.auction.gong.context import IContext
-from openprocurement.auction.gong.database import IDatabase
-from openprocurement.auction.gong.datasource import IDataSource
-from openprocurement.auction.gong.utils import (
+from openprocurement.auction.texas.context import IContext
+from openprocurement.auction.texas.database import IDatabase
+from openprocurement.auction.texas.datasource import IDataSource
+from openprocurement.auction.texas.utils import (
     lock_server,
     update_auction_document,
     prepare_end_stage
 )
 
-LOGGER = logging.getLogger('Auction Worker Gong')
+LOGGER = logging.getLogger('Auction Worker Texas')
 
 SCHEDULER = GeventScheduler(job_defaults={"misfire_grace_time": 100},
                             executors={'default': AuctionsExecutor()},

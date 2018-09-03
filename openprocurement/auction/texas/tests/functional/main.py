@@ -32,21 +32,21 @@ def update_auctionPeriod(path):
     auction_file.close()
 
 
-def run_gong(tender_file_path):
+def run_texas(tender_file_path):
     with open(tender_file_path) as _file:
         auction_id = json.load(_file).get('data', {}).get('id')
         if auction_id:
             with update_auctionPeriod(tender_file_path) as auction_file:
-                check_output(TESTS['gong']['worker_cmd'].format(CWD, auction_id, auction_file).split())
+                check_output(TESTS['texas']['worker_cmd'].format(CWD, auction_id, auction_file).split())
     sleep(1)
 
 
 TESTS = {
-    "gong": {
-        "worker_cmd": '{0}/bin/auction_worker planning {1}'
-                      ' {0}/etc/auction_worker_defaults.yaml'
+    "texas": {
+        "worker_cmd": '{0}/bin/auction_texas planning {1}'
+                      ' {0}/etc/auction_worker_texas.yaml'
                       ' --planning_procerude partial_db --auction_info {2}',
-        "runner": run_gong,
+        "runner": run_texas,
         'auction_worker_defaults': 'auction_worker_defaults:{0}/etc/auction_worker_defaults.yaml',
         'suite': PWD
     }

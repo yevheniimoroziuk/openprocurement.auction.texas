@@ -8,7 +8,7 @@ from couchdb import Database, Session
 from gevent.event import Event
 from gevent.lock import BoundedSemaphore
 
-from openprocurement.auction.gong.journal import (
+from openprocurement.auction.texas.journal import (
     AUCTION_WORKER_SERVICE_AUCTION_RESCHEDULE,
     AUCTION_WORKER_SERVICE_AUCTION_NOT_FOUND,
     AUCTION_WORKER_SERVICE_AUCTION_STATUS_CANCELED,
@@ -24,22 +24,22 @@ from openprocurement.auction.utils import (
 )
 from openprocurement.auction.worker_core.constants import TIMEZONE
 
-from openprocurement.auction.gong import utils
-from openprocurement.auction.gong.constants import (
+from openprocurement.auction.texas import utils
+from openprocurement.auction.texas.constants import (
     MULTILINGUAL_FIELDS,
     ADDITIONAL_LANGUAGES,
     PRESTARTED,
     DEADLINE_HOUR,
     ROUND_DURATION
 )
-from openprocurement.auction.gong.context import IContext
-from openprocurement.auction.gong.datasource import IDataSource
-from openprocurement.auction.gong.database import IDatabase
-from openprocurement.auction.gong.scheduler import IJobService
-from openprocurement.auction.gong.server import run_server
-from openprocurement.auction.gong.scheduler import SCHEDULER
+from openprocurement.auction.texas.context import IContext
+from openprocurement.auction.texas.datasource import IDataSource
+from openprocurement.auction.texas.database import IDatabase
+from openprocurement.auction.texas.scheduler import IJobService
+from openprocurement.auction.texas.server import run_server
+from openprocurement.auction.texas.scheduler import SCHEDULER
 
-LOGGER = logging.getLogger('Auction Worker Gong')
+LOGGER = logging.getLogger('Auction Worker Texas')
 
 
 class Auction(object):

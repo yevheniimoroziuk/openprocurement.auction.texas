@@ -19,17 +19,17 @@ EXTRAS_REQUIRE = {
 }
 ENTRY_POINTS = {
     'console_scripts': [
-        'auction_gong = openprocurement.auction.gong.cli:main',
+        'auction_texas = openprocurement.auction.texas.cli:main',
     ],
     'openprocurement.auction.auctions': [
-        'dgfOtherAssets = openprocurement.auction.gong.includeme:kadastralProcedure',
+        'dgfOtherAssets = openprocurement.auction.texas.includeme:kadastralProcedure',
     ],
     'openprocurement.auction.robottests': [
-        'gong = openprocurement.auction.gong.tests.functional.main:includeme'
+        'texas = openprocurement.auction.texas.tests.functional.main:includeme'
     ],
 }
 
-setup(name='openprocurement.auction.gong',
+setup(name='openprocurement.auction.texas',
       version=VERSION,
       description="",
       long_description=open(os.path.join("docs", "HISTORY.txt")).read(),
@@ -43,7 +43,7 @@ setup(name='openprocurement.auction.gong',
       author='Quintagroup, Ltd.',
       author_email='info@quintagroup.com',
       license='Apache License 2.0',
-      url='https://github.com/openprocurement/openprocurement.auction.gong',
+      url='https://github.com/openprocurement/openprocurement.auction.texas',
       packages=find_packages(exclude=['ez_setup']),
       namespace_packages=['openprocurement', 'openprocurement.auction'],
       include_package_data=True,

@@ -3,7 +3,7 @@ import mock
 
 from uuid import uuid4
 
-from openprocurement.auction.gong.datasource import OpenProcurementAPIDataSource
+from openprocurement.auction.texas.datasource import OpenProcurementAPIDataSource
 
 
 class TestOpenProcurementAPIDataSource(unittest.TestCase):
@@ -27,7 +27,7 @@ class TestInit(TestOpenProcurementAPIDataSource):
         super(TestInit, self).setUp()
         self.request_session = mock.MagicMock()
 
-        self.patch_request_session = mock.patch('openprocurement.auction.gong.datasource.RequestsSession')
+        self.patch_request_session = mock.patch('openprocurement.auction.texas.datasource.RequestsSession')
         self.mocked_request_session = self.patch_request_session.start()
         self.mocked_request_session.return_value = self.request_session
 
@@ -91,8 +91,8 @@ class TestUpdateSourceObject(TestOpenProcurementAPIDataSource):
 
         self.request_session = mock.MagicMock()
 
-        self.patch_get_active_bids = mock.patch('openprocurement.auction.gong.datasource.get_active_bids')
-        self.patch_open_bidders_name = mock.patch('openprocurement.auction.gong.datasource.open_bidders_name')
+        self.patch_get_active_bids = mock.patch('openprocurement.auction.texas.datasource.get_active_bids')
+        self.patch_open_bidders_name = mock.patch('openprocurement.auction.texas.datasource.open_bidders_name')
 
         self.patch_upload_history = mock.patch.object(self.datasource, 'upload_auction_history_document')
         self.patch_post_results = mock.patch.object(self.datasource, '_post_results_data')
@@ -253,9 +253,9 @@ class TestPostResultData(TestOpenProcurementAPIDataSource):
 
         self.request_session = mock.MagicMock()
 
-        self.patch_make_request = mock.patch('openprocurement.auction.gong.datasource.make_request')
-        self.patch_generate_request_id = mock.patch('openprocurement.auction.gong.datasource.generate_request_id')
-        self.patch_get_latest_bid_for_bidder = mock.patch('openprocurement.auction.gong.datasource.get_latest_bid_for_bidder')
+        self.patch_make_request = mock.patch('openprocurement.auction.texas.datasource.make_request')
+        self.patch_generate_request_id = mock.patch('openprocurement.auction.texas.datasource.generate_request_id')
+        self.patch_get_latest_bid_for_bidder = mock.patch('openprocurement.auction.texas.datasource.get_latest_bid_for_bidder')
 
         self.mocked_make_request = self.patch_make_request.start()
         self.mocked_generate_request_id = self.patch_generate_request_id.start()
@@ -386,7 +386,7 @@ class TestUploadHistoryDocument(TestOpenProcurementAPIDataSource):
 
         self.history_data = {'auction': 'protocol'}
 
-        self.patch_request_session = mock.patch('openprocurement.auction.gong.datasource.RequestsSession')
+        self.patch_request_session = mock.patch('openprocurement.auction.texas.datasource.RequestsSession')
         self.mocked_request_session = self.patch_request_session.start()
         self.request_session = mock.MagicMock()
         self.mocked_request_session.return_value = self.request_session
@@ -507,9 +507,9 @@ class TestUploadFileWithDS(TestOpenProcurementAPIDataSource):
         self.datasource.session = self.session
         self.datasource.session_ds = self.session_ds
 
-        self.patch_make_request = mock.patch('openprocurement.auction.gong.datasource.make_request')
-        self.patch_yaml_dump = mock.patch('openprocurement.auction.gong.datasource.yaml_dump')
-        self.patch_generate_request_id = mock.patch('openprocurement.auction.gong.datasource.generate_request_id')
+        self.patch_make_request = mock.patch('openprocurement.auction.texas.datasource.make_request')
+        self.patch_yaml_dump = mock.patch('openprocurement.auction.texas.datasource.yaml_dump')
+        self.patch_generate_request_id = mock.patch('openprocurement.auction.texas.datasource.generate_request_id')
 
         self.mock_make_request = self.patch_make_request.start()
 
@@ -662,9 +662,9 @@ class TestUploadFileWithoutDS(TestOpenProcurementAPIDataSource):
         self.session = mock.MagicMock()
         self.datasource.session = self.session
 
-        self.patch_make_request = mock.patch('openprocurement.auction.gong.datasource.make_request')
-        self.patch_yaml_dump = mock.patch('openprocurement.auction.gong.datasource.yaml_dump')
-        self.patch_generate_request_id = mock.patch('openprocurement.auction.gong.datasource.generate_request_id')
+        self.patch_make_request = mock.patch('openprocurement.auction.texas.datasource.make_request')
+        self.patch_yaml_dump = mock.patch('openprocurement.auction.texas.datasource.yaml_dump')
+        self.patch_generate_request_id = mock.patch('openprocurement.auction.texas.datasource.generate_request_id')
 
         self.mock_make_request = self.patch_make_request.start()
 
@@ -759,9 +759,9 @@ class TestSetParticipationUrls(TestOpenProcurementAPIDataSource):
         self.session = mock.MagicMock()
         self.datasource.session = self.session
 
-        self.patch_make_request = mock.patch('openprocurement.auction.gong.datasource.make_request')
-        self.patch_generate_request_id = mock.patch('openprocurement.auction.gong.datasource.generate_request_id')
-        self.patch_calculate_hash = mock.patch('openprocurement.auction.gong.datasource.calculate_hash')
+        self.patch_make_request = mock.patch('openprocurement.auction.texas.datasource.make_request')
+        self.patch_generate_request_id = mock.patch('openprocurement.auction.texas.datasource.generate_request_id')
+        self.patch_calculate_hash = mock.patch('openprocurement.auction.texas.datasource.calculate_hash')
 
         self.mock_make_request = self.patch_make_request.start()
 

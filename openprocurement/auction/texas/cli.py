@@ -13,11 +13,11 @@ from zope.component.globalregistry import getGlobalSiteManager
 
 from openprocurement.auction.worker_core import constants as C
 
-from openprocurement.auction.gong.auction import Auction, SCHEDULER
-from openprocurement.auction.gong.context import prepare_context, IContext
-from openprocurement.auction.gong.database import prepare_database, IDatabase
-from openprocurement.auction.gong.datasource import prepare_datasource, IDataSource
-from openprocurement.auction.gong.scheduler import prepare_job_service, IJobService
+from openprocurement.auction.texas.auction import Auction, SCHEDULER
+from openprocurement.auction.texas.context import prepare_context, IContext
+from openprocurement.auction.texas.database import prepare_database, IDatabase
+from openprocurement.auction.texas.datasource import prepare_datasource, IDataSource
+from openprocurement.auction.texas.scheduler import prepare_job_service, IJobService
 
 
 def register_utilities(worker_config, auction_id):

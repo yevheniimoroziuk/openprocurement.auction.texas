@@ -9,19 +9,19 @@ from zope.component import getGlobalSiteManager
 from openprocurement.auction.utils import generate_request_id
 from openprocurement.auction.worker_core.constants import TIMEZONE
 
-from openprocurement.auction.gong import utils
-from openprocurement.auction.gong.context import IContext
-from openprocurement.auction.gong.constants import ROUND_DURATION, BIDS_KEYS_FOR_COPY, DEADLINE_HOUR
-from openprocurement.auction.gong.database import IDatabase
-from openprocurement.auction.gong.scheduler import IJobService
-from openprocurement.auction.gong.scheduler import SCHEDULER
-from openprocurement.auction.gong.journal import (
+from openprocurement.auction.texas import utils
+from openprocurement.auction.texas.context import IContext
+from openprocurement.auction.texas.constants import ROUND_DURATION, BIDS_KEYS_FOR_COPY, DEADLINE_HOUR
+from openprocurement.auction.texas.database import IDatabase
+from openprocurement.auction.texas.scheduler import IJobService
+from openprocurement.auction.texas.scheduler import SCHEDULER
+from openprocurement.auction.texas.journal import (
     AUCTION_WORKER_SERVICE_END_BID_STAGE,
     AUCTION_WORKER_SERVICE_START_NEXT_STAGE
 )
-from openprocurement.auction.gong.utils import set_specific_hour, get_round_ending_time
+from openprocurement.auction.texas.utils import set_specific_hour, get_round_ending_time
 
-LOGGER = logging.getLogger("Auction Worker Gong")
+LOGGER = logging.getLogger("Auction Worker Texas")
 
 
 class BidsHandler(object):

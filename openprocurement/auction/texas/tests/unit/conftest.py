@@ -13,12 +13,12 @@ from datetime import timedelta
 from StringIO import StringIO
 from pytz import timezone as tz
 
-from openprocurement.auction.gong.auction import Auction, SCHEDULER
-from openprocurement.auction.gong.mixins import LOGGER
-from openprocurement.auction.gong.tests.data.data import (
+from openprocurement.auction.texas.auction import Auction, SCHEDULER
+from openprocurement.auction.texas.mixins import LOGGER
+from openprocurement.auction.texas.tests.data.data import (
     tender_data, test_auction_document
 )
-from openprocurement.auction.gong.server import (
+from openprocurement.auction.texas.server import (
     app as worker_app, BidsForm
 )
 

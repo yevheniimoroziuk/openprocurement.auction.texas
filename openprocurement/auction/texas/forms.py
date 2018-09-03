@@ -9,8 +9,8 @@ from wtforms.validators import InputRequired, ValidationError
 from openprocurement.auction.utils import prepare_extra_journal_fields
 from openprocurement.auction.worker_core.constants import TIMEZONE
 
-from openprocurement.auction.gong.constants import MAIN_ROUND
-from openprocurement.auction.gong.utils import lock_server
+from openprocurement.auction.texas.constants import MAIN_ROUND
+from openprocurement.auction.texas.utils import lock_server
 
 
 wtforms_json.init()

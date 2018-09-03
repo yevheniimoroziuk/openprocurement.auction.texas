@@ -12,12 +12,12 @@ from zope.interface import (
 
 from openprocurement.auction.utils import generate_request_id
 
-from openprocurement.auction.gong.journal import (
+from openprocurement.auction.texas.journal import (
     AUCTION_WORKER_DB_GET_DOC,
     AUCTION_WORKER_DB_GET_DOC_ERROR, AUCTION_WORKER_DB_GET_DOC_UNHANDLED_ERROR, AUCTION_WORKER_DB_SAVE_DOC,
     AUCTION_WORKER_DB_SAVE_DOC_ERROR, AUCTION_WORKER_DB_SAVE_DOC_UNHANDLED_ERROR)
 
-LOGGER = logging.getLogger("Auction Worker Gong")
+LOGGER = logging.getLogger("Auction Worker Texas")
 
 
 class IDatabase(Interface):

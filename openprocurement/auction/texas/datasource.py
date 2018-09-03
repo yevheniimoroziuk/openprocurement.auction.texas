@@ -19,11 +19,11 @@ from openprocurement.auction.utils import (
     get_latest_bid_for_bidder,
     calculate_hash
 )
-from openprocurement.auction.gong.utils import (
+from openprocurement.auction.texas.utils import (
     get_active_bids,
     open_bidders_name
 )
-from openprocurement.auction.gong.journal import (
+from openprocurement.auction.texas.journal import (
     AUCTION_WORKER_API_APPROVED_DATA,
     AUCTION_WORKER_API_AUCTION_RESULT_NOT_APPROVED,
     AUCTION_WORKER_API_AUDIT_LOG_APPROVED,
@@ -32,7 +32,7 @@ from openprocurement.auction.gong.journal import (
 )
 
 
-LOGGER = logging.getLogger("Auction Worker Gong")
+LOGGER = logging.getLogger("Auction Worker Texas")
 
 
 class IDataSource(Interface):

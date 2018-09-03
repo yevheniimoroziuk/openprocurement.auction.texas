@@ -21,11 +21,11 @@ from openprocurement.auction.worker_core.server import (
     _LoggerStream, AuctionsWSGIHandler
 )
 
-from openprocurement.auction.gong import views
-from openprocurement.auction.gong.bids import BidsHandler
-from openprocurement.auction.gong.constants import AUCTION_SUBPATH
-from openprocurement.auction.gong.context import IContext
-from openprocurement.auction.gong.forms import BidsForm, form_handler
+from openprocurement.auction.texas import views
+from openprocurement.auction.texas.bids import BidsHandler
+from openprocurement.auction.texas.constants import AUCTION_SUBPATH
+from openprocurement.auction.texas.context import IContext
+from openprocurement.auction.texas.forms import BidsForm, form_handler
 
 
 def initialize_application():
