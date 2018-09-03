@@ -163,7 +163,6 @@ class Auction(object):
                 LOGGER.info("Auction {} has not started and will be rescheduled".format(self.context['auction_doc_id']),
                             extra={'MESSAGE_ID': AUCTION_WORKER_SERVICE_AUCTION_RESCHEDULE})
                 auction_document["current_stage"] = -101
-                self.database.save_auction_document(auction_document, self.context['auction_doc_id'])
         else:
             LOGGER.info("Auction {} not found".format(self.context['auction_doc_id']),
                         extra={'MESSAGE_ID': AUCTION_WORKER_SERVICE_AUCTION_NOT_FOUND})
@@ -198,20 +197,25 @@ class Auction(object):
         self._prepare_auction_document_data(auction_document)
 
         if self.worker_defaults.get('sandbox_mode', False):
-            auction_document['stages'] = utils.prepare_auction_stages(
+            pause, main_round = utils.prepare_auction_stages(
                 self.startDate,
                 deepcopy(auction_document),
                 fast_forward=True
             )
         else:
-            auction_document['stages'] = utils.prepare_auction_stages(
+            pause, main_round = utils.prepare_auction_stages(
                 self.startDate,
                 deepcopy(auction_document)
             )
-        self.database.save_auction_document(
-            auction_document, self.context['auction_doc_id']
-        )
-        self.datasource.set_participation_urls(self._auction_data)
+        if not main_round:
+            # auction can't start after deadline
+            self.reschedule_auction()
+        else:
+            auction_document['stages'] = [pause, main_round]
+            self.database.save_auction_document(
+                auction_document, self.context['auction_doc_id']
+            )
+            self.datasource.set_participation_urls(self._auction_data)
 
     def _prepare_auction_document_data(self, auction_document):
         auction_document.update({
