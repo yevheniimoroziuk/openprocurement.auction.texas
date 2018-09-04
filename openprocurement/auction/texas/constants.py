@@ -10,4 +10,4 @@ MAIN_ROUND = 'english'
 AUCTION_DEADLINE = 'auction-deadline'
 END = 'announcement'
 
-DEADLINE_HOUR = 17
+DEADLINE_HOUR = 23
