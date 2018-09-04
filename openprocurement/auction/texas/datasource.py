@@ -73,6 +73,34 @@ class IDataSource(Interface):
 
 
 @implementer(IDataSource)
+class SimpleTestingFileDataSource(object):
+    """
+    This class is responsible for working with file datasource
+    :parameter path: path to file
+    """
+    path = ''
+    post_result = False
+    post_history_document = False
+
+    def __init__(self, config):
+        self.path = config['path']
+
+    def get_data(self, public=True, with_credentials=False):
+        with open(self.path) as f:
+            auction_data = json.load(f)
+            return auction_data
+
+    def update_source_object(self, external_data, db_document, history_data):
+        return True
+
+    def set_participation_urls(self, external_data):
+        pass
+
+    def upload_auction_history_document(self, data):
+        raise NotImplementedError
+
+
+@implementer(IDataSource)
 class FileDataSource(object):
     """
     This class is responsible for working with file datasource
@@ -329,7 +357,8 @@ class OpenProcurementAPIDataSource(object):
 
 DATASOURCE_MAPPING = {
     'file': FileDataSource,
-    'openprocurement.api': OpenProcurementAPIDataSource
+    'openprocurement.api': OpenProcurementAPIDataSource,
+    'test': SimpleTestingFileDataSource
 }
 
 
