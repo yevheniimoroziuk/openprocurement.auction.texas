@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from zope.component.globalregistry import getGlobalSiteManager
 from couchdb import Database, Session
 from gevent.event import Event
-from gevent.lock import BoundedSemaphore
 
 from openprocurement.auction.texas.journal import (
     AUCTION_WORKER_SERVICE_AUCTION_RESCHEDULE,
@@ -19,7 +18,8 @@ from openprocurement.auction.texas.journal import (
     AUCTION_WORKER_API_AUCTION_NOT_EXIST,
 )
 from openprocurement.auction.utils import (
-    generate_request_id
+    generate_request_id,
+    sorting_start_bids_by_amount
 )
 from openprocurement.auction.worker_core.constants import TIMEZONE
 
@@ -27,7 +27,6 @@ from openprocurement.auction.texas import utils
 from openprocurement.auction.texas.constants import (
     MULTILINGUAL_FIELDS,
     ADDITIONAL_LANGUAGES,
-    PRESTARTED,
     DEADLINE_HOUR,
     ROUND_DURATION
 )
@@ -49,7 +48,6 @@ class Auction(object):
         self.tender_id = tender_id
         self.debug = debug
         self._end_auction_event = Event()
-        self.bids_actions = BoundedSemaphore()
         self.worker_defaults = worker_defaults
         self.db = Database(str(self.worker_defaults["COUCH_DATABASE"]),
                            session=Session(retry_delays=range(10)))
@@ -122,7 +120,6 @@ class Auction(object):
     def start_auction(self):
         request_id = generate_request_id()
         self.auction_protocol['timeline']['auction_start']['time'] = datetime.now(TIMEZONE).isoformat()
-        self.context['auction_protocol'] = deepcopy(self.auction_protocol)
 
         LOGGER.info(
             '---------------- Start auction  ----------------',
@@ -131,6 +128,7 @@ class Auction(object):
         )
         self.synchronize_auction_info()
         with utils.lock_server(self.context['server_actions']), utils.update_auction_document(self.context, self.database) as auction_document:
+            self._prepare_initial_bids(auction_document)
             auction_document["current_stage"] = 0
             LOGGER.info("Switched current stage to {}".format(
                 auction_document['current_stage']
@@ -217,6 +215,27 @@ class Auction(object):
             return
         self.datasource.set_participation_urls(self._auction_data)
 
+    def _prepare_initial_bids(self, auction_document):
+        bids = deepcopy(self.bidders_data)
+        bids_info = sorting_start_bids_by_amount(bids)
+        # Prepare initial bids in document and protocol
+        for index, bid in enumerate(bids_info):
+            auction_document['initial_bids'].append(
+                utils.prepare_results_stage(
+                    bidder_id=bid['id'],
+                    time=bid["date"] if "date" in bid else self.startDate,
+                    bidder_name=self.bids_mapping[bid["id"]],
+                    amount=bid['value']['amount']
+                )
+            )
+            self.auction_protocol['timeline']['auction_start']['initial_bids'].append({
+                'bidder': bid['id'],
+                'date': bid['date'],
+                'amount': bid['value']['amount'],
+                'bid_number': self.bids_mapping[bid['id']]
+            })
+        self.context['auction_protocol'] = deepcopy(self.auction_protocol)
+
     def _prepare_auction_document_data(self, auction_document):
         auction_document.update({
             "_id": self.context['auction_doc_id'],
@@ -227,6 +246,7 @@ class Auction(object):
             "TENDERS_API_VERSION": self.worker_defaults["resource_api_version"],
             "current_stage": -1,
             "results": [],
+            "initial_bids": [],
             "procuringEntity": self._auction_data["data"].get(
                 "procuringEntity", {}
             ),
@@ -304,6 +324,7 @@ class Auction(object):
             {
                 'id': bid['id'],
                 'date': bid['date'],
+                'value': bid['value'],
                 'owner': bid.get('owner', '')
             }
             for bid in self._auction_data['data'].get('bids', [])

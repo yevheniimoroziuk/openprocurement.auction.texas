@@ -173,16 +173,16 @@ class OpenProcurementAPIDataSource(object):
 
         return auction_data
 
-    def update_source_object(self, external_data, db_document, history_data):
+    def update_source_object(self, external_data, db_document, auction_protocol):
         """
         :param external_data: data that has been gotten from api
         :param db_document:  data that has been gotten from auction module db
-        :param history_data: audit of auction
+        :param auction_protocol: audit of auction
         :return:
         """
         request_id = generate_request_id()
 
-        doc_id = self.upload_auction_history_document(history_data)
+        doc_id = self.upload_auction_history_document(auction_protocol)
 
         results = self._post_results_data(external_data, db_document)
 
@@ -191,8 +191,10 @@ class OpenProcurementAPIDataSource(object):
             new_db_document = open_bidders_name(deepcopy(db_document), bids_information)
 
             if doc_id and bids_information:
-                approve_auction_protocol_info_on_announcement(self.context, approved=bids_information)
-                self.upload_auction_history_document(history_data, doc_id)
+                auction_protocol = approve_auction_protocol_info_on_announcement(
+                    new_db_document, auction_protocol, approved=bids_information
+                )
+                self.upload_auction_history_document(auction_protocol, doc_id)
                 return new_db_document
         else:
             LOGGER.info(

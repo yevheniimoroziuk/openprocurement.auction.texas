@@ -63,8 +63,6 @@ class BidsHandler(object):
         # Cleaning up preplanned jobs
         SCHEDULER.remove_all_jobs()
 
-        approve_auction_protocol_info_on_bids_stage(self.context)
-
         with utils.update_auction_document(self.context, self.database) as auction_document:
             # Creating new stages
             bid_document = {

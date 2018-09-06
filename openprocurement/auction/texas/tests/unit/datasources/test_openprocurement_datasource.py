@@ -91,12 +91,17 @@ class TestUpdateSourceObject(TestOpenProcurementAPIDataSource):
 
         self.request_session = mock.MagicMock()
 
+        self.patch_approve_auction_protocol_info_on_announcement = mock.patch(
+            'openprocurement.auction.texas.datasource.approve_auction_protocol_info_on_announcement'
+        )
         self.patch_get_active_bids = mock.patch('openprocurement.auction.texas.datasource.get_active_bids')
         self.patch_open_bidders_name = mock.patch('openprocurement.auction.texas.datasource.open_bidders_name')
 
         self.patch_upload_history = mock.patch.object(self.datasource, 'upload_auction_history_document')
         self.patch_post_results = mock.patch.object(self.datasource, '_post_results_data')
 
+        self.mocked_approve_auction_protocol_info_on_announcement = \
+            self.patch_approve_auction_protocol_info_on_announcement.start()
         self.mocked_get_active_bids = self.patch_get_active_bids.start()
         self.mocked_open_bidders_name = self.patch_open_bidders_name.start()
         self.mocked_upload_history = self.patch_upload_history.start()
@@ -107,6 +112,7 @@ class TestUpdateSourceObject(TestOpenProcurementAPIDataSource):
         self.patch_open_bidders_name.stop()
         self.patch_upload_history.stop()
         self.patch_post_results.stop()
+        self.patch_approve_auction_protocol_info_on_announcement.stop()
 
     def test_update_source_object_with_bad_document_upload(self):
         self.mocked_upload_history.return_value = None
@@ -192,12 +198,20 @@ class TestUpdateSourceObject(TestOpenProcurementAPIDataSource):
         new_db_document = {'db_document': 'with opened names'}
         self.mocked_open_bidders_name.return_value = new_db_document
 
+        auction_protocol = {'auction': 'protocol'}
+        self.mocked_approve_auction_protocol_info_on_announcement.return_value = auction_protocol
+
         result = self.datasource.update_source_object(self.external_data, self.db_document, self.history_document)
 
         self.assertEqual(result, new_db_document)
 
         self.assertEqual(self.mocked_upload_history.call_count, 2)
         self.mocked_upload_history.assert_called_with(self.history_document, doc_id)
+
+        self.assertEqual(self.mocked_approve_auction_protocol_info_on_announcement.call_count, 1)
+        self.mocked_approve_auction_protocol_info_on_announcement.assert_called_with(
+            new_db_document, self.history_document, approved=bids_result_data
+        )
 
         self.assertEqual(self.mocked_post_results.call_count, 1)
         self.mocked_post_results.assert_called_with(self.external_data, self.db_document)
@@ -225,12 +239,20 @@ class TestUpdateSourceObject(TestOpenProcurementAPIDataSource):
         new_db_document = {'db_document': 'with opened names'}
         self.mocked_open_bidders_name.return_value = new_db_document
 
+        auction_protocol = {'auction': 'protocol'}
+        self.mocked_approve_auction_protocol_info_on_announcement.return_value = auction_protocol
+
         result = self.datasource.update_source_object(self.external_data, self.db_document, self.history_document)
 
         self.assertEqual(result, new_db_document)
 
         self.assertEqual(self.mocked_upload_history.call_count, 2)
         self.mocked_upload_history.assert_called_with(self.history_document, doc_id)
+
+        self.assertEqual(self.mocked_approve_auction_protocol_info_on_announcement.call_count, 1)
+        self.mocked_approve_auction_protocol_info_on_announcement.assert_called_with(
+            new_db_document, self.history_document, approved=bids_result_data
+        )
 
         self.assertEqual(self.mocked_post_results.call_count, 1)
         self.mocked_post_results.assert_called_with(self.external_data, self.db_document)
