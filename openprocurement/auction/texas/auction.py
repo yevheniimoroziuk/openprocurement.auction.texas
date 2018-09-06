@@ -207,15 +207,17 @@ class Auction(object):
                 self.startDate,
                 deepcopy(auction_document)
             )
+
+        auction_document['stages'] = [pause, main_round]
+        self.database.save_auction_document(
+            auction_document, self.context['auction_doc_id']
+        )
+
         if not main_round:
             # auction can't start after deadline
             self.reschedule_auction()
-        else:
-            auction_document['stages'] = [pause, main_round]
-            self.database.save_auction_document(
-                auction_document, self.context['auction_doc_id']
-            )
-            self.datasource.set_participation_urls(self._auction_data)
+            return
+        self.datasource.set_participation_urls(self._auction_data)
 
     def _prepare_auction_document_data(self, auction_document):
         auction_document.update({
