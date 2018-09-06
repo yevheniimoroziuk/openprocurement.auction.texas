@@ -42,8 +42,7 @@ def run_texas(tender_file_path):
         auction_id = uuid4().hex
         bids = auction_json.get('bids', [])
         if auction_id:
-            with update_auctionPeriod(tender_file_path) as auction_file:
-                check_output(TESTS['texas']['worker_cmd'].format(CWD, auction_id, auction_file).split())
+            check_output(TESTS['texas']['worker_cmd'].format(CWD, auction_id).split())
 
     for bid in bids:
         print 'texas-auctions/{}/login?bidder_id={}&hash={}'.format(

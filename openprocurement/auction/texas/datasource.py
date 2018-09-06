@@ -2,6 +2,7 @@
 import logging
 import json
 
+from datetime import datetime, timedelta
 from urlparse import urljoin
 from copy import deepcopy
 from yaml import safe_dump as yaml_dump
@@ -10,6 +11,7 @@ from zope.interface import (
     implementer,
     Attribute
 )
+from dateutil.tz import tzlocal
 from requests import Session as RequestsSession
 
 from openprocurement.auction.utils import (
@@ -76,18 +78,22 @@ class IDataSource(Interface):
 class SimpleTestingFileDataSource(object):
     """
     This class is responsible for working with file datasource
-    :parameter path: path to file
     """
-    path = ''
+    path = '/tests/functional/data/tender_texas.json'
     post_result = False
     post_history_document = False
 
-    def __init__(self, config):
-        self.path = config['path']
+    def __init__(self, *args, **kwargs):
+        self.path = '/'.join(__file__.split('/')[:-1]) + self.path
 
     def get_data(self, public=True, with_credentials=False):
+        pause_seconds = timedelta(seconds=120)
         with open(self.path) as f:
             auction_data = json.load(f)
+
+            new_start_time = (datetime.now(tzlocal()) + pause_seconds).isoformat()
+            auction_data['data']['auctionPeriod']['startDate'] = new_start_time
+
             return auction_data
 
     def update_source_object(self, external_data, db_document, history_data):

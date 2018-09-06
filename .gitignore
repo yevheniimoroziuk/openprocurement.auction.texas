@@ -62,6 +62,3 @@ openprocurement/auction/node_modules/
 openprocurement/auction/static/vendor/
 openprocurement/auction/static/.webassets-cache/
 openprocurement/auction/static/min/
-
-# Json for testing auction
-openprocurement/auction/texas/tests/functional/data/auction_file.json
