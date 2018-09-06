@@ -2,6 +2,7 @@
 import logging
 import json
 
+from datetime import datetime, timedelta
 from urlparse import urljoin
 from copy import deepcopy
 from yaml import safe_dump as yaml_dump
@@ -10,6 +11,7 @@ from zope.interface import (
     implementer,
     Attribute
 )
+from dateutil.tz import tzlocal
 from requests import Session as RequestsSession
 
 from openprocurement.auction.utils import (
@@ -70,6 +72,38 @@ class IDataSource(Interface):
         This method is responsible for posting participationUrl to external source of data
         if it needed
         """
+        raise NotImplementedError
+
+
+@implementer(IDataSource)
+class SimpleTestingFileDataSource(object):
+    """
+    This class is responsible for working with file datasource
+    """
+    path = '/tests/functional/data/tender_texas.json'
+    post_result = False
+    post_history_document = False
+
+    def __init__(self, *args, **kwargs):
+        self.path = '/'.join(__file__.split('/')[:-1]) + self.path
+
+    def get_data(self, public=True, with_credentials=False):
+        pause_seconds = timedelta(seconds=120)
+        with open(self.path) as f:
+            auction_data = json.load(f)
+
+            new_start_time = (datetime.now(tzlocal()) + pause_seconds).isoformat()
+            auction_data['data']['auctionPeriod']['startDate'] = new_start_time
+
+            return auction_data
+
+    def update_source_object(self, external_data, db_document, history_data):
+        return True
+
+    def set_participation_urls(self, external_data):
+        pass
+
+    def upload_auction_history_document(self, data):
         raise NotImplementedError
 
 
@@ -332,7 +366,8 @@ class OpenProcurementAPIDataSource(object):
 
 DATASOURCE_MAPPING = {
     'file': FileDataSource,
-    'openprocurement.api': OpenProcurementAPIDataSource
+    'openprocurement.api': OpenProcurementAPIDataSource,
+    'test': SimpleTestingFileDataSource
 }
 
 

@@ -21,8 +21,8 @@ ENTRY_POINTS = {
     'console_scripts': [
         'auction_texas = openprocurement.auction.texas.cli:main',
     ],
-    'openprocurement.auction.auctions': [
-        'dgfOtherAssets = openprocurement.auction.texas.includeme:kadastralProcedure',
+    'openprocurement.auction.components': [
+        'texas = openprocurement.auction.texas.includeme:texasProcedure',
     ],
     'openprocurement.auction.robottests': [
         'texas = openprocurement.auction.texas.tests.functional.main:includeme'

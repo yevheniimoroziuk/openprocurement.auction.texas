@@ -49,8 +49,6 @@ class Auction(object):
         self.debug = debug
         self._end_auction_event = Event()
         self.worker_defaults = worker_defaults
-        self.db = Database(str(self.worker_defaults["COUCH_DATABASE"]),
-                           session=Session(retry_delays=range(10)))
         self.auction_protocol = {}
         self.retries = 10
         self.bidders_count = 0
@@ -242,7 +240,7 @@ class Auction(object):
             "stages": [],
             "auctionID": self._auction_data["data"].get("auctionID", ""),
             "procurementMethodType": self._auction_data["data"].get(
-                "procurementMethodType", "default"),
+                "procurementMethodType", "texas"),
             "TENDERS_API_VERSION": self.worker_defaults["resource_api_version"],
             "current_stage": -1,
             "results": [],
