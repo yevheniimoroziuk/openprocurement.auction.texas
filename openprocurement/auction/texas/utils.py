@@ -2,14 +2,13 @@
 import iso8601
 
 from contextlib import contextmanager
-from copy import deepcopy
 from datetime import datetime, time, timedelta
 
 from openprocurement.auction.worker_core.constants import TIMEZONE
 from openprocurement.auction.worker_core.utils import prepare_service_stage
 
 from openprocurement.auction.texas.constants import (
-    PAUSE_DURATION, DEADLINE_HOUR, END, MAIN_ROUND
+    PAUSE_DURATION, DEADLINE_HOUR, END, MAIN_ROUND, PAUSE
 )
 
 
@@ -28,7 +27,9 @@ def prepare_results_stage(bidder_id="", bidder_name="", amount="", time=""):
 
 
 def prepare_auction_stages(stage_start, auction_data, fast_forward=False):
-    pause_stage = prepare_service_stage(start=stage_start.isoformat())
+    pause_stage = prepare_service_stage(
+        start=stage_start.isoformat(), type=PAUSE
+    )
     main_round_stage = {}
     stages = [pause_stage, main_round_stage]
 
@@ -73,17 +74,10 @@ def set_specific_hour(date_time, hour):
     )
 
 
-def prepare_bid_stage(exist_stage_params, params={},  current_auction_value=0):
-    # Should get amount of previous stage or initial_auction_value
-    # current_auction_value += minimalStep
-    stage = None
-    return stage
-
-
 def get_active_bids(results):
 
     bids_information = dict([
-        (bid["id"], bid.get("tenderers"))
+        (bid["id"], bid)
         for bid in results["data"].get("bids", [])
         if bid.get("status", "active") == "active"
     ])
@@ -92,14 +86,14 @@ def get_active_bids(results):
 
 
 def open_bidders_name(auction_document, bids_information):
-    for field in ['results', 'stages']:
+    for field in ['initial_bids', 'results', 'stages']:
         for index, stage in enumerate(auction_document[field]):
             if 'bidder_id' in stage and stage['bidder_id'] in bids_information:
                 auction_document[field][index].update({
                     "label": {
-                        'uk': bids_information[stage['bidder_id']][0]["name"],
-                        'en': bids_information[stage['bidder_id']][0]["name"],
-                        'ru': bids_information[stage['bidder_id']][0]["name"],
+                        'uk': bids_information[stage['bidder_id']]["tenderers"][0]["name"],
+                        'en': bids_information[stage['bidder_id']]["tenderers"][0]["name"],
+                        'ru': bids_information[stage['bidder_id']]["tenderers"][0]["name"],
                     }
                 })
     return auction_document
@@ -120,16 +114,70 @@ def lock_server(semaphore):
     semaphore.release()
 
 
-def prepare_audit():
-    protocol = {
+def convert_datetime(datetime_stamp):
+    return iso8601.parse_date(datetime_stamp).astimezone(TIMEZONE)
+
+
+# AUCTION PROTOCOL FUNCTIONS
+
+def prepare_auction_protocol(context):
+    auction_protocol = {
+        "id": context["auction_doc_id"],
+        "auctionId": context["auction_data"]["data"].get("auctionID", ""),
+        "auction_id": context["auction_doc_id"],
+        "items": context["auction_data"]["data"].get("items", []),
         "timeline": {
             "auction_start": {
                 "initial_bids": []
-            }
+            },
+
         }
     }
-    return protocol
+    return auction_protocol
 
 
-def convert_datetime(datetime_stamp):
-    return iso8601.parse_date(datetime_stamp).astimezone(TIMEZONE)
+def prepare_bid_result(bid):
+    return {
+        'bidder': bid['bidder_id'],
+        'amount': bid['amount'],
+        'time': bid['time']
+    }
+
+
+def approve_auction_protocol_info(auction_document, auction_protocol):
+    stages = auction_document['stages']
+    for index, stage in enumerate(stages):
+        if stage['type'] == PAUSE:
+            auction_protocol['timeline']['stage_{}'.format(index)] = {
+                'pause': {
+                    'start': stage['start'],
+                    'end': stages[index+1]['start']
+                }
+            }
+        if stage['type'] == MAIN_ROUND:
+            auction_protocol['timeline']['stage_{}'.format(index)] = {
+                'bids': prepare_bid_result(stage) if stage.get('time') else {}
+            }
+    return auction_protocol
+
+
+def approve_auction_protocol_info_on_bids_stage(auction_document, auction_protocol):
+    current_stage = int(auction_document['current_stage'])
+    bid = auction_document['stages'][current_stage]
+    round_number = current_stage / 2 + 1
+    auction_protocol['timeline']['round_{}'.format(round_number)] = prepare_bid_result(bid)
+    return auction_protocol
+
+
+def approve_auction_protocol_info_on_announcement(auction_document, auction_protocol, approved=None):
+    auction_protocol['timeline']['results'] = {
+        "time": datetime.now(TIMEZONE).isoformat(),
+        "bids": []
+    }
+    for bid in auction_document['results']:
+        bid_result_audit = prepare_bid_result(bid)
+        if approved:
+            bid_result_audit["identification"] = approved[bid['bidder_id']].get('tenderers', [])
+            bid_result_audit["owner"] = approved[bid['bidder_id']].get('owner', '')
+        auction_protocol['timeline']['results']['bids'].append(bid_result_audit)
+    return auction_protocol

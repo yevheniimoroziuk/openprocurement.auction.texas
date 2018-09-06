@@ -107,6 +107,7 @@ class CouchDB(object):
                     LOGGER.critical("Unhandled error: {}".format(e),
                                     extra={'MESSAGE_ID': AUCTION_WORKER_DB_GET_DOC_UNHANDLED_ERROR})
             retries -= 1
+        return {}
 
     def save_auction_document(self, auction_document, auction_doc_id):
         """

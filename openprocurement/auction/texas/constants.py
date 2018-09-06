@@ -7,6 +7,7 @@ ADDITIONAL_LANGUAGES = ["ru", "en"]
 
 PRESTARTED = 'pre-started'
 MAIN_ROUND = 'english'
+PAUSE = 'pause'
 AUCTION_DEADLINE = 'auction-deadline'
 END = 'announcement'
 
