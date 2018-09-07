@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
+from pkg_resources import iter_entry_points
 
 from copy import deepcopy
 from couchdb import Database, Session
@@ -149,6 +150,12 @@ class CouchDB(object):
 DATABASE_MAPPING = {
     'couchdb': CouchDB,
 }
+
+PKG_NAMESPACE = "openprocurement.auction.texas.database"
+
+for entry_point in iter_entry_points(PKG_NAMESPACE):
+    plugin = entry_point.load()
+    DATABASE_MAPPING[entry_point.name] = plugin()
 
 
 def prepare_database(config):

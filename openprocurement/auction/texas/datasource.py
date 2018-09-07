@@ -2,6 +2,7 @@
 import logging
 import json
 
+from pkg_resources import iter_entry_points
 from datetime import datetime, timedelta
 from urlparse import urljoin
 from copy import deepcopy
@@ -369,6 +370,12 @@ DATASOURCE_MAPPING = {
     'openprocurement.api': OpenProcurementAPIDataSource,
     'test': SimpleTestingFileDataSource
 }
+
+
+PKG_NAMESPACE = "openprocurement.auction.texas.datasource"
+for entry_point in iter_entry_points(PKG_NAMESPACE):
+    plugin = entry_point.load()
+    DATASOURCE_MAPPING[entry_point.name] = plugin()
 
 
 def prepare_datasource(config):

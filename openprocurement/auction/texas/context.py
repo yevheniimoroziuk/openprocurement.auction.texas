@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
+from pkg_resources import iter_entry_points
 
 from gevent.event import Event
 from gevent.lock import BoundedSemaphore
@@ -94,6 +95,13 @@ class DictContext(object):
 CONTEXT_MAPPING = {
     'dict': DictContext,
 }
+
+
+PKG_NAMESPACE = "openprocurement.auction.texas.context"
+
+for entry_point in iter_entry_points(PKG_NAMESPACE):
+    plugin = entry_point.load()
+    CONTEXT_MAPPING[entry_point.name] = plugin()
 
 
 def prepare_context(config):
