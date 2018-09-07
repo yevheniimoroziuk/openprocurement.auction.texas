@@ -118,7 +118,7 @@ class TestGetDocument(TestCouchDBDatabase):
 
         doc_from_db = self.database.get_auction_document(doc_id)
 
-        self.assertEqual(doc_from_db, None)
+        self.assertEqual(doc_from_db, {})
 
         self.assertEqual(self.database._db.get.call_count, 10)
         self.database._db.get.assert_called_with(doc_id)
